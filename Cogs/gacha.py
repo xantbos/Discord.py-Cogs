@@ -1,3 +1,9 @@
+# A very specific script to emulate the F/GO gacha system
+# Relies on external files to properly function
+# Not really uploaded as a plug-and-play cog
+# Requires a good amount of work to get it working
+# Mostly uploaded for the sake of it
+
 import discord
 import ctypes
 import asyncio
