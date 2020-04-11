@@ -1,9 +1,3 @@
-# A very specific script to emulate the F/GO gacha system
-# Relies on external files to properly function
-# Not really uploaded as a plug-and-play cog
-# Requires a good amount of work to get it working
-# Mostly uploaded for the sake of it
-
 import discord
 import ctypes
 import asyncio
@@ -33,17 +27,6 @@ massTestValue = 10000
 noImageFlag = False
 
 requiresSQFlag = False
-
-poolPath="pools\\"
-defaultPath="base\\"
-eventPath="event\\"
-limitedPath="limited\\"
-servantPath="gacha\\servant\\"
-cePath="gacha\\ce\\"
-
-_botLaunch = datetime.now()
-JST = pytz.timezone("Asia/Tokyo")
-EST = pytz.timezone("Canada/Eastern")
 
 class RollResult():
 
@@ -236,20 +219,6 @@ class UserDataBlock(object):
 		except:
 			pass
 		return em
-	
-class WeightedChoice(object):
-    def __init__(self, weights):
-        self._total_weight = 0.
-        self._item_levels = []
-        for item, weight in weights:
-            self._total_weight += weight
-            self._item_levels.append((self._total_weight, item))
-
-    def pick(self):
-        pick = self._total_weight * random()
-        for level, item in self._item_levels:
-            if level >= pick:
-                return item
 
 class SimuGacha(commands.Cog):
 
@@ -260,8 +229,11 @@ class SimuGacha(commands.Cog):
 		self.SGacha = StoryPool()
 		self.LGacha = LimitedPools()
 		self.donateMessage = "Please remember to donate if you can ({}donate)".format(self.bot.prefix)
+		self.botLaunch = datetime.now()
+		self.JST = pytz.timezone("Asia/Tokyo")
+		self.EST = pytz.timezone("Canada/Eastern")
 		if requiresSQFlag:
-			self.rewardsGiven = JST.localize(datetime(year=_botLaunch.year, month=_botLaunch.month, day=_botLaunch.day, hour=4, minute=00, second=00))
+			self.rewardsGiven = self.JST.localize(datetime(year=_botLaunch.year, month=_botLaunch.month, day=_botLaunch.day, hour=4, minute=00, second=00))
 			asyncio.ensure_future(self.LoginTokenResetter())
 		
 	async def LoginTokenResetter(self):
@@ -280,11 +252,11 @@ class SimuGacha(commands.Cog):
 		print("\tSuccess")
 		doNothing = True
 		while doNothing:
-			diff = self.rewardsGiven - EST.localize(datetime.now())
+			diff = self.rewardsGiven - self.EST.localize(datetime.now())
 			if diff.total_seconds() <= 0:
 				self.rewardsGiven = self.rewardsGiven + timedelta(days=1)
 			else:
-				diff = self.rewardsGiven - EST.localize(datetime.now())
+				diff = self.rewardsGiven - self.EST.localize(datetime.now())
 				await asyncio.sleep(diff.total_seconds())
 				print("Login Token Reset")
 				uValues = getSimuGachaData()
@@ -470,30 +442,36 @@ class Pool:
 		self.srCPool = []
 		self.rSPool = []
 		self.rCPool = []
+		self.poolPath="pools\\"
+		self.defaultPath="base\\"
+		self.eventPath="event\\"
+		self.limitedPath="limited\\"
+		self.servantPath="gatcha\\servant\\"
+		self.cePath="gatcha\\ce\\"
 		self.__generate_default_data()
 		
 	def __generate_default_data(self):
 		#SSR
-		self.ssrSPool = returnJson(poolPath + defaultPath, "defaultSSRservant")
-		self.ssrCPool = returnJson(poolPath + defaultPath, "defaultSSRce")
+		self.ssrSPool = returnJson(self.poolPath + self.defaultPath, "defaultSSRservant")
+		self.ssrCPool = returnJson(self.poolPath + self.defaultPath, "defaultSSRce")
 		
 		#SR
-		self.srSPool = returnJson(poolPath + defaultPath, "defaultSRservant")
-		self.srCPool = returnJson(poolPath + defaultPath, "defaultSRce")
+		self.srSPool = returnJson(self.poolPath + self.defaultPath, "defaultSRservant")
+		self.srCPool = returnJson(self.poolPath + self.defaultPath, "defaultSRce")
 		
 		#R
-		self.rSPool = returnJson(poolPath + defaultPath, "defaultRservant")
-		self.rCPool = returnJson(poolPath + defaultPath, "defaultRce")
+		self.rSPool = returnJson(self.poolPath + self.defaultPath, "defaultRservant")
+		self.rCPool = returnJson(self.poolPath + self.defaultPath, "defaultRce")
 		
 	def generate_roll_snapshot_image(self,roll,tscontent,userID):
 		if noImageFlag:
-			return 'gacha\\urolls\\{}_roll.png'.format(userID)
+			return 'gatcha\\urolls\\{}_roll.png'.format(userID)
 		if len(roll)>1 and len(roll)<10:
 			return False
 		for x in range(len(roll)):
 			if not os.path.isfile(roll[x]):
 				print("Missing file @: {} | {}".format(roll[x],tscontent))
-				roll[x] = "gacha\\noicon.png"
+				roll[x] = "gatcha\\noicon.png"
 		length=len(roll)
 		imageCount = len(roll)
 		images = list(map(Image.open, roll))
@@ -515,8 +493,8 @@ class Pool:
 			if curCount == int(imageCount/2):
 				curRow = int(max_height/2)
 				x_offset = 0
-		new_im.save('gacha\\urolls\\{}_roll.png'.format(userID))
-		return 'gacha\\urolls\\{}_roll.png'.format(userID)
+		new_im.save('gatcha\\urolls\\{}_roll.png'.format(userID))
+		return 'gatcha\\urolls\\{}_roll.png'.format(userID)
 		
 	
 class LimitedPools(Pool):
@@ -552,16 +530,16 @@ class LimitedPools(Pool):
 		
 	def __populate_active_json_list(self):
 		fNames = []
-		for filename in os.listdir(poolPath + limitedPath):
+		for filename in os.listdir(self.poolPath + self.limitedPath):
 			if filename.endswith(".json"):
-				uValues = returnJsonUnicode(poolPath + limitedPath, filename)
+				uValues = returnJsonUnicode(self.poolPath + self.limitedPath, filename)
 				if uValues["control"]["active"] == "True":
 					fNames.append(filename[:-5])
 		return fNames
 					
 	def __generate_pool_data(self, fileNames):
 		for jsonFile in fileNames:
-			uValues = returnJsonUnicode(poolPath + limitedPath, jsonFile)
+			uValues = returnJsonUnicode(self.poolPath + self.limitedPath, jsonFile)
 		
 			self.poolNames.append(uValues["ssrGatchaName"])
 		
@@ -664,27 +642,27 @@ class LimitedPools(Pool):
 				else:
 					result = "RC"
 		if result == "SSRS": 
-			item="{}{}.png".format(servantPath, self.__return_ssr_servant(pool))
+			item="{}{}.png".format(self.servantPath, self.__return_ssr_servant(pool))
 			rollReport.ssrServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "SSRC": 
-			item="{}{}.png".format(cePath, self.__return_ssr_ce(pool))
+			item="{}{}.png".format(self.cePath, self.__return_ssr_ce(pool))
 			rollReport.ssrCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		elif result == "SRS": 
-			item="{}{}.png".format(servantPath, self.__return_sr_servant(pool))
+			item="{}{}.png".format(self.servantPath, self.__return_sr_servant(pool))
 			rollReport.srServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "SRC": 
-			item="{}{}.png".format(cePath, self.__return_sr_ce(pool))
+			item="{}{}.png".format(self.cePath, self.__return_sr_ce(pool))
 			rollReport.srCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		elif result == "RS": 
-			item="{}{}.png".format(servantPath, self.__return_r_servant(pool))
+			item="{}{}.png".format(self.servantPath, self.__return_r_servant(pool))
 			rollReport.rServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "RC": 
-			item="{}{}.png".format(cePath, self.__return_r_ce(pool))
+			item="{}{}.png".format(self.cePath, self.__return_r_ce(pool))
 			rollReport.rCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		rollReport.rollSummary.append(item)
@@ -700,12 +678,12 @@ class LimitedPools(Pool):
 			if servants:
 				for entry in servants:
 					if not entry == "":
-						cardList.append("{}{}.png".format(servantPath, entry))
+						cardList.append("{}{}.png".format(self.servantPath, entry))
 		for essences in ceList:
 			if essences:
 				for entry in essences:
 					if not entry == "":
-						cardList.append("{}{}.png".format(cePath, entry))
+						cardList.append("{}{}.png".format(self.cePath, entry))
 		return cardList
 		
 	def __return_ssr_servant(self, pool):
@@ -805,17 +783,17 @@ class StoryPool(Pool):
 		#print("Default Pool merged with Storylocked.")
 		
 	def __merge_default_pool_with_storylock(self):
-		self.ssrSPool += returnJson(poolPath + defaultPath, "storySSRservant")
-		self.ssrCPool += returnJson(poolPath + defaultPath, "storySSRce")
-		self.srSPool += returnJson(poolPath + defaultPath, "storySRservant")
-		self.srCPool += returnJson(poolPath + defaultPath, "storySRce")
-		self.rSPool += returnJson(poolPath + defaultPath, "storyRservant")
-		self.rCPool += returnJson(poolPath + defaultPath, "storyRce")
+		self.ssrSPool += returnJson(self.poolPath + self.defaultPath, "storySSRservant")
+		self.ssrCPool += returnJson(self.poolPath + self.defaultPath, "storySSRce")
+		self.srSPool += returnJson(self.poolPath + self.defaultPath, "storySRservant")
+		self.srCPool += returnJson(self.poolPath + self.defaultPath, "storySRce")
+		self.rSPool += returnJson(self.poolPath + self.defaultPath, "storyRservant")
+		self.rCPool += returnJson(self.poolPath + self.defaultPath, "storyRce")
 		return
 		
 	def yolo_roll(self, im_id):
 		results = self.__single_roll()
-		results.imagePath = self.generate_roll_snapshot_image(totalResult.rollSummary,"STORY -YOLO", im_id)
+		results.imagePath = self.generate_roll_snapshot_image(results.rollSummary,"STORY -YOLO", im_id)
 		return results
 		
 	def multi_roll(self, im_id):
@@ -876,27 +854,27 @@ class StoryPool(Pool):
 				else:
 					result = "RC"
 		if result == "SSRS": 
-			item="{}{}.png".format(servantPath, self.__return_ssr_story_servant())
+			item="{}{}.png".format(self.servantPath, self.__return_ssr_story_servant())
 			rollReport.ssrServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "SSRC": 
-			item="{}{}.png".format(cePath, self.__return_ssr_story_ce())
+			item="{}{}.png".format(self.cePath, self.__return_ssr_story_ce())
 			rollReport.ssrCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		elif result == "SRS": 
-			item="{}{}.png".format(servantPath, self.__return_sr_story_servant())
+			item="{}{}.png".format(self.servantPath, self.__return_sr_story_servant())
 			rollReport.srServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "SRC": 
-			item="{}{}.png".format(cePath, self.__return_sr_story_ce())
+			item="{}{}.png".format(self.cePath, self.__return_sr_story_ce())
 			rollReport.srCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		elif result == "RS": 
-			item="{}{}.png".format(servantPath, self.__return_r_story_servant())
+			item="{}{}.png".format(self.servantPath, self.__return_r_story_servant())
 			rollReport.rServantRolled+=1
 			rollReport.servantRolled.append(item.split("\\")[2][:-4])
 		elif result == "RC": 
-			item="{}{}.png".format(cePath, self.__return_r_story_ce())
+			item="{}{}.png".format(self.cePath, self.__return_r_story_ce())
 			rollReport.rCERolled+=1
 			rollReport.ceRolled.append(item.split("\\")[2][:-4])
 		rollReport.rollSummary.append(item)
