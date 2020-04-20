@@ -2,7 +2,9 @@
 # Relies on external files to properly function
 # Not really uploaded as a plug-and-play cog
 # Requires a good amount of work to get it working
-# Mostly uploaded for the sake of it
+
+# I went ham in my get/set for UserDataBlock but it was to help with getting a better grasp of how Python interacts with classes and whatnot
+# First thing I got grilled for was it being too excessive.
 
 import discord
 import ctypes
